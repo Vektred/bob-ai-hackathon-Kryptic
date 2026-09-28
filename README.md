@@ -26,7 +26,8 @@ Investigators may have to manually organize and compare this information, making
 
 > What did you build? How does it solve the problem above?
 
-KRYPTIC is an AI-assisted Missing Person Investigation Assistant that brings cases, person information, sightings, evidence, locations and leads together in one platform. It helps investigators organize investigations, identify potential connections and receive alerts while keeping final decisions under human control.
+KRYPTIC is an AI-assisted Missing Person Investigation Assistant that brings cases, person information, sightings, evidence, locations and leads together in one platform. 
+It helps investigators organize investigations, identify potential connections and receive alerts while keeping final decisions under human control.
 
 ---
 
@@ -39,29 +40,6 @@ KRYPTIC is an AI-assisted Missing Person Investigation Assistant that brings cas
 * **Feature 5:** Role-based access, investigator alerts and audit logging for secure case management.
 * **Feature 6:** The family enters the child's details once, and the tool reuses them to auto-fill both the police case file and the public appeal notice.
 
----
-
-## ⚡ How to Run
-
-> **Copy these exact steps from your [`docs/setup-guide.md`](docs/setup-guide.md)**
-
-```bash
-# 1. Clone the repo
-git clone https://github.com/[your-repo].git
-cd [your-repo]
-
-# 2. Install dependencies
-[your install command here]
-
-# 3. Configure environment
-cp .env.example .env
-# Edit .env with your values
-
-# 4. Run the project
-[your run command here]
-```
-
----
 
 ## Demo:
 
