@@ -38,17 +38,6 @@ KRYPTIC is an AI-assisted Missing Person Investigation Assistant that brings cas
 
 ---
 
-## 🛠️ Tech Stack
-
-| Category             | Technologies                                                                     |
-| -------------------- | -------------------------------------------------------------------------------- |
-| **Languages**        |                                                                     |
-| **Frameworks**       |                                                     |
-| **IBM Technologies** | IBM Bob, IBM watsonx / IBM AI                                                    |
-| **Databases**        |                                                           |
-| **Other**            |  |
-
----
 ## ⚡ How to Run
 
 > **Copy these exact steps from your [`docs/setup-guide.md`](docs/setup-guide.md)**
