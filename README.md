@@ -82,7 +82,7 @@ cp .env.example .env
 
 ---
 
-## Known Limitations:
+## Known Limitations:    
 
 * AI-assisted results are potential leads and require human investigator review.
 * Demonstration cases, people, sightings and evidence use fictional data.
