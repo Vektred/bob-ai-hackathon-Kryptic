@@ -1,9 +1,5 @@
 # 🚀 KRYPTIC
 
-> ⚠️ **Replace everything in `[ ]` brackets with your actual content before submission.**
-
----
-
 ## 👥 Team
 
 | Field         | Value                                                   |
@@ -11,7 +7,7 @@
 | **Team Name** | KRYPTIC                                                 |
 | **Track**     | AI                                                      |
 | **Team Lead** | Rahul — [r9785856@gmail.com](mailto:r9785856@gmail.com) |
-| **Members**   | Dhyam Murli MC, Shaurya Pansara, Aditya Kumar           |
+| **Members**   | Dhyan Murali MC, Shaurya Pansara, Aditya Kumar           |
 
 ---
 
