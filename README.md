@@ -40,6 +40,17 @@ It helps investigators organize investigations, identify potential connections a
 * **Feature 5:** Role-based access, investigator alerts and audit logging for secure case management.
 * **Feature 6:** The family enters the child's details once, and the tool reuses them to auto-fill both the police case file and the public appeal notice.
 
+---
+
+## USP
+
+Instead of investigators searching through scattered clues, BOB.SYS connects the clues in one place.
+Case details, intelligence logs, timeline, map and leads are connected rather than treated as separate tools.
+The system isn't just storing reports. It lets investigators look at what happened, where it happened, and when it happened together.
+AI looks for relationships between available clues and produces leads for investigators to verify—not an unsupported “AI found the person” claim.
+The workflow continues from intelligence to practical outputs such as FIR and missing-person poster generation.
+
+---
 
 ## Demo:
 
@@ -65,10 +76,4 @@ It helps investigators organize investigations, identify potential connections a
 
 KRYPTIC connects missing-person reports, sightings, evidence, locations and investigation leads into one structured workflow. The platform combines case management, contextual case intelligence, timelines, maps, alerts and AI-assisted potential leads while keeping investigators responsible for final decisions.
 
-## USP
 
-Instead of investigators searching through scattered clues, BOB.SYS connects the clues in one place.
-Case details, intelligence logs, timeline, map and leads are connected rather than treated as separate tools.
-The system isn't just storing reports. It lets investigators look at what happened, where it happened, and when it happened together.
-AI looks for relationships between available clues and produces leads for investigators to verify—not an unsupported “AI found the person” claim.
-The workflow continues from intelligence to practical outputs such as FIR and missing-person poster generation.
