@@ -17,7 +17,8 @@
 
 > What problem does your project solve? Who experiences this problem?
 
-Missing-person investigations often involve fragmented information such as reports, photographs, sightings, locations, evidence and investigation leads. Investigators may have to manually organize and compare this information, making it difficult to identify relevant connections and efficiently track case progress.
+Missing-person investigations often involve fragmented information such as reports, photographs, sightings, locations, evidence and investigation leads. 
+Investigators may have to manually organize and compare this information, making it difficult to identify relevant connections and efficiently track case progress.
 
 ---
 
