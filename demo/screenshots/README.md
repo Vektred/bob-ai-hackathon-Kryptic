@@ -1,26 +1,4 @@
-# Screenshots
-
-Place your application screenshots in this folder.
-
-## Naming Convention
-
-Name your screenshots sequentially so they appear in logical order:
-
-  01-landing-page.png       ← First thing a user sees
-  02-main-feature.png       ← Your primary feature in action
-  03-output-or-results.png  ← The result / value delivered
-  04-additional-feature.png ← Any other notable screen
-
-## Requirements
-
-- Minimum: 3 screenshots
-- Format: PNG or JPG
-- Show the application running with real (or realistic mock) data
-- Avoid screenshots of empty states or placeholder data
-- Captions are not required but appreciated
-
-## Tips
-
-- Use a consistent browser window size across all screenshots
-- Highlight key UI elements with arrows/circles if helpful (use any image editor)
-- Include a screenshot showing IBM technology integration if applicable
+<img width="1895" height="1016" alt="Screenshot 2026-09-28 151625" src="https://github.com/user-attachments/assets/e8ac7497-3954-49a7-85ae-35a8af79f5d6" />
+<img width="1893" height="937" alt="Screenshot 2026-09-28 151650" src="https://github.com/user-attachments/assets/d1f05f90-b1d5-453d-a7f1-953dd3689323" />
+<img width="1890" height="890" alt="Screenshot 2026-09-28 151815" src="https://github.com/user-attachments/assets/8afdf626-ce07-4c4b-9356-dcc88ad7253e" />
+<img width="1910" height="915" alt="Screenshot 2026-09-28 151844" src="https://github.com/user-attachments/assets/991e5a4f-e046-4f08-a68d-003a300c4284" />
