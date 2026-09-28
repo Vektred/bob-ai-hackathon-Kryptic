@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BOB.SYS — Missing Person Investigation Assistant</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  /* ── scrollbars ── */
+  .custom-scroll::-webkit-scrollbar{width:6px;height:6px}
+  .custom-scroll::-webkit-scrollbar-track{background:transparent}
+  .custom-scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px}
+  .custom-scroll::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+
+  /* ── Leaflet popup ── */
+  .leaflet-popup-content-wrapper{border-radius:10px;box-shadow:0 10px 25px rgba(0,0,0,.15)}
+  .leaflet-popup-content{font-family:system-ui,sans-serif;margin:12px 14px}
+
+  /* ── pulse ring for newest timeline dot ── */
+  @keyframes ping{75%,100%{transform:scale(2);opacity:0}}
+  .ping{animation:ping 1.2s cubic-bezier(0,0,.2,1) infinite}
+
+  /* ── AI loader spin ── */
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spin{animation:spin 1s linear infinite}
+
+  /* ── status blink ── */
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .blink{animation:blink 1.4s ease-in-out infinite}
+
+  /* ── print overrides ── */
+  @media print{
+    #sidebar,#topbar,#leftsidebar,#tabnav,#printbtn,#doccontrols{display:none!important}
+    #printarea{display:block!important;padding:0;margin:0}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans overflow-hidden h-screen flex">
+
+<!-- ══════════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════════ -->
+<aside id="sidebar" class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col shrink-0 shadow-2xl z-20">
+  <!-- Brand -->
+  <div class="h-16 flex items-center px-6 border-b border-slate-800">
+    <svg class="w-6 h-6 text-blue-500 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <h1 class="font-bold text-lg text-white tracking-wide">BOB<span class="text-blue-500 font-light">.SYS</span></h1>
+  </div>
+
+  <!-- Nav -->
+  <nav class="flex-1 px-3 py-6 space-y-1">
+    <button onclick="setPage('dashboard')" id="nav-dashboard"
+      class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors bg-blue-600/10 text-blue-400">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Case Dashboard
+    </button>
+    <button onclick="setPage('directory')" id="nav-directory"
+      class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:bg-slate-900 hover:text-slate-200">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      Active Directory
+    </button>
+    <button onclick="setPage('resources')" id="nav-resources"
+      class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:bg-slate-900 hover:text-slate-200">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      Resources & Help
+    </button>
+  </nav>
+
+  <!-- NCRB context -->
+  <div class="p-4 border-t border-slate-800 space-y-3">
+    <div class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+      <p class="text-amber-400 text-[10px] font-bold uppercase tracking-wider mb-1">NCRB 2022 Statistic</p>
+      <p class="text-amber-300 text-xs font-semibold">India: 80,000+ children go missing every year</p>
+      <p class="text-amber-500/70 text-[10px] mt-1">First 24 hours are critical.</p>
+    </div>
+    <!-- Investigator badge -->
+    <div class="px-3 flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700 text-xs font-bold text-slate-300">IO</div>
+      <div class="flex flex-col">
+        <span class="text-xs font-medium text-slate-300">Investigator Desk</span>
+        <span class="text-[10px] text-slate-500">Ahmedabad Crime Branch</span>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ══════════════════════════════════════════════
+     MAIN COLUMN
+══════════════════════════════════════════════ -->
+<div class="flex-1 flex flex-col min-w-0">
+
+  <!-- TOP BAR -->
+  <header id="topbar" class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 shadow-sm z-10">
+    <div class="flex items-center gap-4">
+      <div class="bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200 flex items-center gap-2">
+        <span class="text-xs font-bold text-slate-500">CASE ID:</span>
+        <span id="hdr-caseid" class="text-sm font-mono font-bold text-slate-800">GJ-2026-8924</span>
+      </div>
+      <div class="px-2 py-1 bg-red-100 text-red-700 text-xs font-bold rounded flex items-center gap-1.5 border border-red-200">
+        <span class="w-2 h-2 bg-red-500 rounded-full blink"></span>
+        ACTIVE · CRITICAL
+      </div>
+    </div>
+    <div class="flex items-center gap-3 bg-slate-900 px-4 py-1.5 rounded-lg shadow">
+      <svg class="w-5 h-5 text-amber-400 blink" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div>
+        <p class="text-amber-400 font-bold text-[10px] tracking-wider leading-none mb-0.5">CRITICAL WINDOW (24H)</p>
+        <p id="hdr-elapsed" class="text-white font-mono text-sm leading-none font-semibold">Calculating...</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- WORKSPACE -->
+  <main class="flex-1 p-6 overflow-hidden bg-slate-50/50">
+    <div class="h-full grid grid-cols-1 xl:grid-cols-12 gap-6 min-h-0">
+
+      <!-- LEFT PANEL (forms) -->
+      <div id="leftsidebar" class="xl:col-span-4 flex flex-col gap-6 overflow-y-auto custom-scroll pr-1 pb-4 h-full">
+        <!-- Family Intake Form — filled in Step 2 -->
+        <div id="intake-section"></div>
+        <!-- Intelligence Log Form — filled in Step 3 -->
+        <div id="log-section"></div>
+      </div>
+
+      <!-- RIGHT PANEL (tabs) -->
+      <div class="xl:col-span-8 flex flex-col h-full overflow-hidden bg-white rounded-xl shadow-sm border border-slate-200">
+        <!-- Tab nav — filled in Step 4+ -->
+        <div id="tabnav" class="flex items-center bg-slate-50 px-4 py-3 shrink-0 border-b border-slate-100 overflow-x-auto custom-scroll">
+          <!-- tabs injected by JS -->
+        </div>
+        <!-- Tab content area -->
+        <div id="tabcontent" class="flex-1 overflow-y-auto custom-scroll bg-slate-50/50 p-6 relative">
+          <!-- content injected by JS -->
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div><!-- end main column -->
+
+<!-- TOAST -->
+<div id="toast" class="fixed bottom-8 right-8 z-[500] hidden items-center gap-3 bg-slate-900 text-white px-6 py-4 rounded-xl shadow-2xl border border-slate-700">
+  <svg class="w-5 h-5 text-green-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+  <span id="toast-msg" class="font-semibold text-sm"></span>
+</div>
+
+<!-- PRINT AREA (hidden on screen) -->
+<div id="printarea" class="hidden"></div>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT — Step 1 bootstrap only
+══════════════════════════════════════════════ -->
+<script>
+// ─── Seed data ────────────────────────────────────────────────────────────────
+const now = new Date();
+const timeMissingDate  = new Date(now.getTime() - (14*60*60*1000) - (35*60*1000));
+const tip1Date         = new Date(now.getTime() - (12*60*60*1000));
+const tip2Date         = new Date(now.getTime() - (2*60*60*1000));
+
+function toInputFmt(d){ const x=new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,16); }
+
+let caseData = {
+  caseId: 'GJ-2026-8924',
+  status: 'ACTIVE_CRITICAL',
+  intake: {
+    name:'Aarav Patel', age:'8', gender:'Male',
+    height:'120', weight:'25',
+    clothing:'Yellow t-shirt with Spiderman logo, blue denim shorts, green sandals.',
+    lastKnownLocation:'Vastrapur Lake Entry Gate, Ahmedabad',
+    timeMissing: toInputFmt(timeMissingDate),
+    reporterName:'Priya Patel (Mother)', contactInfo:'+91 98765 43210',
+    distinguishingMarks:'Small scar on left knee. Speaks Hindi and Gujarati.',
+    schoolName:'Kendriya Vidyalaya, Vastrapur'
+  },
+  logs: [
+    { id:'L1', source:'CCTV Footage', timestamp:toInputFmt(tip2Date),
+      location:'SG Highway near Iscon Crossroads',
+      coords:[23.0295,72.5085],
+      description:'Traffic camera picks up a child matching the description walking alone towards the eastbound AMTS bus stop. Appears unharmed but looking around confused.',
+      confidence:'High' },
+    { id:'L2', source:'Phone Tip', timestamp:toInputFmt(tip1Date),
+      location:'Ice Cream Stall, Vastrapur',
+      coords:[23.0360,72.5255],
+      description:'Vendor reports seeing a crying boy in a yellow shirt. A middle-aged woman approached him and they walked off together towards the main road.',
+      confidence:'Medium' }
+  ]
+};
+
+// ─── Active page / tab ────────────────────────────────────────────────────────
+let activePage = 'dashboard';
+let activeTab  = 'overview';
+let activeDoc  = 'fir';
+
+// ─── Sidebar navigation ───────────────────────────────────────────────────────
+function setPage(p){
+  activePage = p;
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.className = b.className.replace(/bg-blue-600\/10 text-blue-400/g,'').replace(/text-slate-400/g,'').trim();
+    b.classList.add('text-slate-400','hover:bg-slate-900','hover:text-slate-200');
+  });
+  const active = document.getElementById('nav-'+p);
+  if(active){ active.classList.remove('text-slate-400','hover:bg-slate-900','hover:text-slate-200'); active.classList.add('bg-blue-600/10','text-blue-400'); }
+  renderAll();
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast'), m=document.getElementById('toast-msg');
+  m.textContent=msg; t.classList.remove('hidden'); t.classList.add('flex');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{ t.classList.add('hidden'); t.classList.remove('flex'); },4000);
+}
+
+// ─── Elapsed time ─────────────────────────────────────────────────────────────
+function updateElapsed(){
+  const start = new Date(caseData.intake.timeMissing).getTime();
+  const diff  = Date.now()-start;
+  if(diff<0){ document.getElementById('hdr-elapsed').textContent='Future Date'; return; }
+  const h=Math.floor(diff/3600000), m=Math.floor((diff%3600000)/60000);
+  document.getElementById('hdr-elapsed').textContent=`Elapsed: ${h}h ${m}m`;
+}
+updateElapsed();
+setInterval(updateElapsed,30000);
+
+// ─── Date formatter ───────────────────────────────────────────────────────────
+function fmtDate(s){
+  if(!s) return 'Not set';
+  const d=new Date(s); if(isNaN(d)) return 'Invalid';
+  const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.getMonth()+1).padStart(2,'0'), yyyy=d.getFullYear();
+  let h=d.getHours(), mi=String(d.getMinutes()).padStart(2,'0'), ap=h>=12?'PM':'AM';
+  h=h%12||12; return `${dd}/${mm}/${yyyy} at ${String(h).padStart(2,'0')}:${mi} ${ap}`;
+}
+
+// ─── Stub render ─────────────────────────────────────────────────────────────
+function renderAll(){
+  document.getElementById('hdr-caseid').textContent = caseData.caseId;
+  // Left panel and right tabs are dashboard-only
+  const left  = document.getElementById('leftsidebar');
+  const right = document.querySelector('.xl\\:col-span-8');
+  if(activePage==='dashboard'){
+    if(left)  left.style.display='';
+    if(right) right.style.display='';
+    renderIntakeForm();
+    renderLogForm();
+    renderTabNav();
+    renderTabContent();
+  } else {
+    // Non-dashboard pages: hide left panel, full-width right with page content
+    if(left)  left.style.display='none';
+    if(right){ right.style.display=''; right.className='xl:col-span-12 flex flex-col h-full overflow-hidden bg-white rounded-xl shadow-sm border border-slate-200'; }
+    document.getElementById('tabnav').innerHTML='';
+    renderPageContent();
+  }
+}
+
+function renderPageContent(){
+  const tc = document.getElementById('tabcontent');
+  if(activePage==='directory'){
+    tc.innerHTML=`<div class="max-w-3xl mx-auto py-8">
+      <h2 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Active Case Directory
+      </h2>
+      <div class="space-y-3">
+        ${[{id:'GJ-2026-8924',name:'Aarav Patel',age:8,status:'ACTIVE',elapsed:'14h 35m',loc:'Vastrapur, Ahmedabad'},
+           {id:'GJ-2026-7201',name:'Fatima Shaikh',age:14,status:'CLOSED',elapsed:'72h',loc:'Surat, Udhna'},
+           {id:'GJ-2026-6834',name:'Ravi Mehta',age:11,status:'ACTIVE',elapsed:'8h 20m',loc:'Vadodara, Alkapuri'}
+        ].map(c=>`
+        <div class="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer" onclick="activePage='dashboard';setPage('dashboard')">
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-black text-slate-500">${c.age}</div>
+            <div>
+              <p class="font-bold text-slate-900">${c.name}</p>
+              <p class="text-xs text-slate-500">${c.loc} &bull; Case ${c.id}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-mono text-slate-500">${c.elapsed}</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${c.status==='ACTIVE'?'bg-red-100 text-red-700 border border-red-200':'bg-green-100 text-green-700 border border-green-200'}">${c.status}</span>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  } else if(activePage==='resources'){
+    tc.innerHTML=`<div class="max-w-3xl mx-auto py-8 space-y-4">
+      <h2 class="text-xl font-bold text-slate-800 mb-6">Emergency Resources</h2>
+      ${[
+        {title:'Childline India',contact:'1098',desc:'24×7 child helpline — free from any phone.'},
+        {title:'Police Control Room',contact:'100',desc:'Ahmedabad City Police emergency line.'},
+        {title:'NCRB Missing Persons Portal',contact:'trackthemissingchild.gov.in',desc:'National database for missing children.'},
+        {title:'AMTS Control Room',contact:'079-26576111',desc:'Ahmedabad bus network for transit alerts.'},
+        {title:'Railway GRP Ahmedabad',contact:'079-22127900',desc:'Government Railway Police — station coverage.'}
+      ].map(r=>`
+      <div class="bg-white border border-slate-200 rounded-xl p-4 flex items-start gap-4 shadow-sm">
+        <div class="w-10 h-10 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.49 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div>
+          <p class="font-bold text-slate-900">${r.title}</p>
+          <p class="text-blue-600 font-mono font-bold text-sm">${r.contact}</p>
+          <p class="text-xs text-slate-500 mt-0.5">${r.desc}</p>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }
+}
+
+// ─── HTML-escape helper ──────────────────────────────────────────────────────
+function e(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─── STEP 2 : Family Intake Form ─────────────────────────────────────────────
+function renderIntakeForm(){
+  const i = caseData.intake;
+  document.getElementById('intake-section').innerHTML = `
+  <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden shrink-0">
+    <div class="bg-slate-800 border-b border-slate-700 px-5 py-3 flex items-center gap-2">
+      <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      <h2 class="font-bold text-white text-sm tracking-wide">Family Intake Form</h2>
+      <span class="ml-auto text-[10px] bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 rounded uppercase font-bold">Critical</span>
+    </div>
+    <form id="intakeForm" onsubmit="submitIntake(event)" class="p-4 space-y-3">
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">Subject Full Name *</label>
+        <input type="text" name="name" value="${e(i.name)}" required
+          class="w-full text-sm rounded-md border border-slate-300 p-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" />
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">Age *</label>
+          <input type="number" name="age" value="${e(i.age)}" min="0" max="120" required
+            class="w-full text-sm rounded-md border border-slate-300 p-2 outline-none focus:ring-2 focus:ring-blue-500/20" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">Gender *</label>
+          <select name="gender" class="w-full text-sm rounded-md border border-slate-300 p-2 bg-white outline-none focus:ring-2 focus:ring-blue-500/20">
+            <option value="Male" ${i.gender==='Male'?'selected':''}>Male</option>
+            <option value="Female" ${i.gender==='Female'?'selected':''}>Female</option>
+            <option value="Other" ${i.gender==='Other'?'selected':''}>Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">Ht (cm)</label>
+          <input type="number" name="height" value="${e(i.height)}"
+            class="w-full text-sm rounded-md border border-slate-300 p-2 outline-none focus:ring-2 focus:ring-blue-500/20" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">Clothing Description *</label>
+        <textarea name="clothing" rows="2" required
+          class="w-full text-sm rounded-md border border-slate-300 p-2 outline-none focus:ring-2 focus:ring-blue-500/20 resize-none">${e(i.clothing)}</textarea>
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">Distinguishing Marks / Language</label>
+        <input type="text" name="distinguishingMarks" value="${e(i.distinguishingMarks)}"
+          class="w-full text-sm rounded-md border border-slate-300 p-2 outline-none focus:ring-2 focus:ring-blue-500/20" />
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">School / Institution</label>
+        <input type="text" name="schoolName" value="${e(i.schoolName)}"
+          class="w-full text-sm rounded-md border border-slate-300 p-2 outline-none focus:ring-2 focus:ring-blue-500/20" />
+      </div>
+      <div class="bg-red-50 p-3 rounded-lg border border-red-200 space-y-3">
+        <div>
+          <label class="block text-[11px] font-bold text-red-800 mb-1 uppercase tracking-wider">Last Known Location *</label>
+          <input type="text" name="lastKnownLocation" value="${e(i.lastKnownLocation)}" required
+            class="w-full text-sm rounded-md border border-red-200 p-2 outline-none focus:ring-2 focus:ring-red-400/30 bg-white" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-red-800 mb-1 uppercase tracking-wider">Date & Time Last Seen *</label>
+          <input type="datetime-local" name="timeMissing" value="${e(i.timeMissing)}" required
+            class="w-full text-sm rounded-md border border-red-200 p-2 outline-none focus:ring-2 focus:ring-red-400/30 bg-white" />
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">Reporter Name *</label>
+          <input type="text" name="reporterName" value="${e(i.reporterName)}" required
+            class="w-full text-sm rounded-md border border-slate-300 p-2 outline-none focus:ring-2 focus:ring-blue-500/20" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">Contact No. *</label>
+          <input type="tel" name="contactInfo" value="${e(i.contactInfo)}" required
+            class="w-full text-sm rounded-md border border-slate-300 p-2 outline-none focus:ring-2 focus:ring-blue-500/20" />
+        </div>
+      </div>
+      <button type="submit"
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-sm shadow transition-colors flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Save Intake File
+      </button>
+    </form>
+  </section>`;
+}
+
+function submitIntake(ev){
+  ev.preventDefault();
+  const fd = new FormData(ev.target);
+  fd.forEach((v,k)=>{ caseData.intake[k]=v; });
+  updateElapsed();
+  renderTabContent(); // refresh overview/docs if open
+  showToast('✓ Intake file saved successfully');
+}
+
+// ─── STEP 3 : Intelligence Log Form + Log List ───────────────────────────────
+function renderLogForm(){
+  const srcIcon = s => s.includes('CCTV')
+    ? `<svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.82v6.36a1 1 0 0 1-1.447.889L15 14M3 8h12a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z"/></svg>`
+    : s.includes('Phone')
+    ? `<svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.49 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`
+    : `<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>`;
+
+  const confBadge = c => {
+    const map={High:'bg-green-100 text-green-800 border-green-200',Medium:'bg-amber-100 text-amber-800 border-amber-200',Low:'bg-red-100 text-red-800 border-red-200'};
+    return `<span class="text-[10px] font-bold border px-2 py-0.5 rounded-full ${map[c]||map['Medium']}">${c}</span>`;
+  };
+
+  const sorted = [...caseData.logs].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+
+  document.getElementById('log-section').innerHTML = `
+  <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden shrink-0">
+    <div class="bg-slate-800 border-b border-slate-700 px-5 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <h2 class="font-bold text-white text-sm tracking-wide">Log Intelligence</h2>
+      </div>
+      <span class="text-[10px] font-bold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded uppercase border border-blue-500/30">${caseData.logs.length} Entries</span>
+    </div>
+
+    <!-- Entry form -->
+    <form id="logForm" onsubmit="submitLog(event)" class="p-4 space-y-3 border-b border-slate-100">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">Source Type</label>
+          <select name="source" required class="w-full text-sm rounded-md border border-slate-300 p-2 bg-white outline-none focus:ring-2 focus:ring-blue-500/20">
+            <option value="CCTV Footage">CCTV Camera</option>
+            <option value="Phone Tip">Phone Tip</option>
+            <option value="Field Officer">Field Officer</option>
+            <option value="Social Media">Social Media</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">Confidence</label>
+          <select name="confidence" class="w-full text-sm rounded-md border border-slate-300 p-2 bg-white outline-none focus:ring-2 focus:ring-blue-500/20">
+            <option value="High">High</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">Timestamp *</label>
+        <input type="datetime-local" name="timestamp" required
+          class="w-full text-sm rounded-md border border-slate-300 p-2 bg-white outline-none focus:ring-2 focus:ring-blue-500/20" />
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">Sighting Location *</label>
+        <input type="text" name="location" placeholder="e.g. Thaltej Crossroad" required
+          class="w-full text-sm rounded-md border border-slate-300 p-2 outline-none focus:ring-2 focus:ring-blue-500/20" />
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-600 mb-1 uppercase tracking-wider">Descriptive Notes *</label>
+        <textarea name="description" rows="2" placeholder="Subject seen walking northbound, appeared distressed..." required
+          class="w-full text-sm rounded-md border border-slate-300 p-2 outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"></textarea>
+      </div>
+      <button type="submit"
+        class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg text-sm shadow transition-colors flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Log Sighting &amp; Update Map
+      </button>
+    </form>
+
+    <!-- Existing log list (compact) -->
+    <div class="divide-y divide-slate-50 max-h-64 overflow-y-auto custom-scroll">
+      ${sorted.map((log,idx)=>`
+      <div class="px-4 py-3 hover:bg-slate-50 transition-colors">
+        <div class="flex items-start justify-between gap-2 mb-1">
+          <span class="flex items-center gap-1.5 font-semibold text-xs text-slate-800">
+            ${srcIcon(log.source)} ${log.source}
+          </span>
+          ${confBadge(log.confidence)}
+        </div>
+        <p class="text-[11px] font-bold text-slate-500 flex items-center gap-1 mb-1">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${e(log.location)}
+          <span class="ml-auto font-mono text-slate-400">${fmtDate(log.timestamp)}</span>
+        </p>
+        <p class="text-xs text-slate-600 leading-relaxed line-clamp-2">${e(log.description)}</p>
+      </div>`).join('')}
+    </div>
+  </section>`;
+}
+
+function submitLog(ev){
+  ev.preventDefault();
+  const fd = new FormData(ev.target);
+  const entry = Object.fromEntries(fd.entries());
+  entry.id = 'L' + Date.now();
+
+  // simple geocode from location name
+  const loc = entry.location.toLowerCase();
+  let coords = [23.0384+(Math.random()-.5)*.018, 72.5298+(Math.random()-.5)*.018];
+  if(loc.includes('thaltej'))    coords=[23.0488,72.5117];
+  else if(loc.includes('navrangpura')) coords=[23.0364,72.5459];
+  else if(loc.includes('satellite'))  coords=[23.0276,72.5218];
+  else if(loc.includes('bopal'))      coords=[23.0333,72.4633];
+  else if(loc.includes('prahlad'))    coords=[23.0120,72.5026];
+  else if(loc.includes('sg highway')) coords=[23.0295,72.5085];
+  else if(loc.includes('vastrapur'))  coords=[23.0360,72.5255];
+  entry.coords = coords;
+
+  caseData.logs.unshift(entry);
+  ev.target.reset();
+  renderLogForm();   // re-render with new entry
+  setTab('map');     // jump to map to see the new pin
+  showToast(`✓ ${entry.source} logged at ${entry.location}`);
+}
+
+// ─── STEP 4 : Tab Navigation ─────────────────────────────────────────────────
+function setTab(t){ activeTab=t; renderTabNav(); renderTabContent(); }
+
+function renderTabNav(){
+  document.getElementById('tabnav').innerHTML = `
+    <div class="flex bg-slate-200/60 p-1 rounded-lg gap-1 flex-wrap">
+      ${tabBtn('overview','Case Overview',`<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,'')}
+      ${tabBtn('map','Geospatial Map',`<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,'')}
+      ${tabBtn('ai','Bob AI Analysis',`<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="12" r="10"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,'emerald')}
+      ${tabBtn('documents','FIR & Poster',`<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>`,'purple')}
+    </div>`;
+}
+
+function tabBtn(id,label,icon,accent){
+  const on = activeTab===id;
+  let cls;
+  if(accent==='emerald') cls = on ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50';
+  else if(accent==='purple') cls = on ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 hover:text-purple-700 hover:bg-purple-50';
+  else cls = on ? 'bg-white text-blue-700 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50';
+  return `<button onclick="setTab('${id}')" class="px-4 py-2 text-sm font-semibold rounded-md flex items-center gap-2 transition-all whitespace-nowrap ${cls}">${icon}${label}</button>`;
+}
+
+// ─── STEP 4 : Case Overview tab ──────────────────────────────────────────────
+function renderOverviewTab(){
+  const i = caseData.intake;
+  const sorted = [...caseData.logs].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+  const srcIcon = s => s.includes('CCTV')
+    ? `<svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.82v6.36a1 1 0 0 1-1.447.889L15 14M3 8h12a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z"/></svg>`
+    : s.includes('Phone')
+    ? `<svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.49 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`
+    : `<svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>`;
+
+  return `<div class="max-w-3xl mx-auto space-y-8">
+    <!-- Dossier card -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row">
+      <div class="md:w-1/3 bg-slate-900 p-6 flex flex-col items-center justify-center text-center relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-amber-400"></div>
+        <div class="w-28 h-28 bg-slate-800 rounded-full border-4 border-slate-700 flex items-center justify-center mb-4">
+          <svg class="w-14 h-14 text-slate-500" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <h2 class="text-2xl font-black text-white">${e(i.name)}</h2>
+        <p class="text-slate-400 mt-1">${e(i.age)} yrs &bull; ${e(i.gender)}</p>
+        <div class="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-full text-red-400 text-xs font-bold uppercase">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          High Risk
+        </div>
+      </div>
+      <div class="md:w-2/3 p-6 grid grid-cols-2 gap-y-5 gap-x-6 text-sm">
+        <div class="col-span-2 flex justify-between pb-4 border-b border-slate-100">
+          <div>
+            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Reported By</span>
+            <span class="font-semibold text-slate-800">${e(i.reporterName)}</span>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">Contact</span>
+            <span class="font-mono font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">${e(i.contactInfo)}</span>
+          </div>
+        </div>
+        <div class="col-span-2">
+          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Clothing &amp; Physical</span>
+          <span class="text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100 block leading-relaxed">${e(i.clothing)}</span>
+        </div>
+        <div>
+          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Distinguishing Marks</span>
+          <span class="text-slate-700">${e(i.distinguishingMarks||'—')}</span>
+        </div>
+        <div>
+          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">School</span>
+          <span class="text-slate-700">${e(i.schoolName||'—')}</span>
+        </div>
+        <div class="col-span-2 mt-2 p-4 bg-red-50 rounded-xl border border-red-100 grid grid-cols-2 gap-4">
+          <div>
+            <span class="text-[10px] text-red-800 font-bold uppercase tracking-wider block mb-1">Last Known Location</span>
+            <span class="font-bold text-slate-900 text-sm">${e(i.lastKnownLocation)}</span>
+          </div>
+          <div>
+            <span class="text-[10px] text-red-800 font-bold uppercase tracking-wider block mb-1">Time Missing</span>
+            <span class="font-bold text-slate-900 text-sm bg-white px-2 py-1 rounded shadow-sm border border-red-100 inline-block">${fmtDate(i.timeMissing)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Timeline -->
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
+          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Intelligence Timeline
+        </h3>
+        <span class="text-xs font-bold bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full">${caseData.logs.length} Entries</span>
+      </div>
+      <div class="space-y-0 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        ${sorted.map((log,idx)=>`
+        <div class="relative pl-10 pb-8 group">
+          ${idx!==sorted.length-1?`<div class="absolute left-[19px] top-5 bottom-[-24px] w-[2px] bg-slate-100 group-hover:bg-blue-100 transition-colors"></div>`:''}
+          <div class="absolute left-[13px] top-1.5 z-10">
+            ${idx===0
+              ? `<div class="relative flex h-3.5 w-3.5"><span class="ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-blue-600 ring-4 ring-white shadow-sm"></span></div>`
+              : `<div class="h-3.5 w-3.5 rounded-full bg-slate-300 ring-4 ring-white shadow-sm group-hover:bg-blue-400 transition-colors"></div>`}
+          </div>
+          <div class="border rounded-xl p-4 transition-all ${idx===0?'bg-blue-50/30 border-blue-200 shadow-sm':'bg-white border-slate-100 hover:border-slate-200 hover:shadow-sm'}">
+            <div class="flex flex-wrap justify-between items-start gap-2 mb-2">
+              <span class="font-bold text-sm text-slate-800 flex items-center gap-1.5">${srcIcon(log.source)} ${e(log.source)}</span>
+              <span class="text-xs font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">${fmtDate(log.timestamp)}</span>
+            </div>
+            <p class="text-sm font-semibold text-slate-900 mb-1 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              ${e(log.location)}
+            </p>
+            <p class="text-sm text-slate-600 leading-relaxed">${e(log.description)}</p>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── STEP 5 : Geospatial Map tab ─────────────────────────────────────────────
+let _mapInstance  = null;
+let _mapLayers    = null;
+
+function renderMapTab(){
+  return `<div class="w-full h-full min-h-[480px] flex flex-col">
+    <div id="leaflet-map" class="flex-1 rounded-xl overflow-hidden border border-slate-200 shadow-inner relative" style="min-height:460px;">
+      <div id="map-loader" class="absolute inset-0 flex items-center justify-center bg-slate-100 z-[600]">
+        <div class="flex flex-col items-center gap-3">
+          <svg class="w-8 h-8 text-blue-500 spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+          <span class="font-semibold text-slate-600 text-sm">Loading Geospatial Engine...</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function initMap(){
+  if(_mapInstance){ _mapInstance.remove(); _mapInstance=null; _mapLayers=null; }
+
+  const container = document.getElementById('leaflet-map');
+  if(!container) return;
+  const loader = document.getElementById('map-loader');
+
+  const baseCoords = [23.0384, 72.5298];
+  _mapInstance = L.map(container,{zoomControl:true,scrollWheelZoom:true}).setView(baseCoords,13);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; OpenStreetMap &copy; CARTO', maxZoom:19
+  }).addTo(_mapInstance);
+
+  const redIcon = L.divIcon({className:'',html:`<div style="background:#dc2626;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 3px 8px rgba(0,0,0,.4)"></div>`,iconSize:[16,16],iconAnchor:[8,8]});
+  const blueIcon = L.divIcon({className:'',html:`<div style="background:#2563eb;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 5px rgba(0,0,0,.3)"></div>`,iconSize:[14,14],iconAnchor:[7,7]});
+
+  const fg = L.featureGroup().addTo(_mapInstance);
+  _mapLayers = fg;
+
+  // Last known location
+  L.marker(baseCoords,{icon:redIcon})
+    .bindPopup(`<b style="color:#dc2626;font-size:11px;text-transform:uppercase">Last Seen Location</b><br/><b style="font-size:14px">${caseData.intake.lastKnownLocation}</b>`)
+    .addTo(fg);
+
+  // 2 km search radius
+  L.circle(baseCoords,{color:'#dc2626',fillColor:'#dc2626',fillOpacity:.07,radius:2000,weight:2,dashArray:'6,6'}).addTo(fg);
+
+  // Sort logs chronologically
+  const sorted = [...caseData.logs].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+
+  sorted.forEach(log=>{
+    if(!log.coords) return;
+    L.marker(log.coords,{icon:blueIcon})
+      .bindPopup(`<b style="color:#2563eb;font-size:11px;text-transform:uppercase">${log.source}</b><br/>
+        <b style="font-size:13px">${fmtDate(log.timestamp)}</b><br/>
+        <b style="font-size:14px;display:block;margin-top:4px">${log.location}</b>
+        <p style="font-size:13px;color:#475569;margin-top:6px;line-height:1.4">${log.description}</p>`)
+      .addTo(fg);
+  });
+
+  // Trajectory line
+  const path = [baseCoords, ...sorted.filter(l=>l.coords).map(l=>l.coords)];
+  if(path.length>1) L.polyline(path,{color:'#2563eb',weight:3,opacity:.8,dashArray:'8,8'}).addTo(fg);
+
+  // Fit bounds
+  setTimeout(()=>{
+    if(_mapInstance && _mapLayers){
+      try{ _mapInstance.fitBounds(_mapLayers.getBounds().pad(0.15)); }catch(_){}
+      _mapInstance.invalidateSize();
+      if(loader) loader.style.display='none';
+    }
+  },350);
+}
+
+// Legend HTML injected once map is active
+function injectMapLegend(){
+  const existing = document.getElementById('map-legend');
+  if(existing) return;
+  const mapDiv = document.getElementById('leaflet-map');
+  if(!mapDiv) return;
+  const leg = document.createElement('div');
+  leg.id='map-legend';
+  leg.style.cssText='position:absolute;bottom:16px;right:16px;background:rgba(255,255,255,.97);backdrop-filter:blur(6px);padding:14px 16px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.12);border:1px solid #e5e7eb;z-index:400;pointer-events:none;font-family:system-ui,sans-serif;font-size:12px';
+  leg.innerHTML=`
+    <p style="font-weight:900;color:#1e293b;text-transform:uppercase;font-size:10px;letter-spacing:.08em;margin-bottom:10px">Spatial Legend</p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px"><div style="width:14px;height:14px;border-radius:50%;background:#dc2626;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,.25)"></div><span style="font-weight:600;color:#334155">Last Known Location</span></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px"><div style="width:13px;height:13px;border-radius:50%;background:#2563eb;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div><span style="font-weight:600;color:#334155">Verified Sighting</span></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px"><div style="width:18px;height:0;border-top:3px dashed #dc2626"></div><span style="font-weight:600;color:#334155">2 km Search Ring</span></div>
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:18px;height:0;border-top:3px dashed #2563eb"></div><span style="font-weight:600;color:#334155">Trajectory Path</span></div>`;
+  mapDiv.appendChild(leg);
+}
+
+// ─── STEP 6 : Bob AI Analysis tab ────────────────────────────────────────────
+let aiState = 'idle'; // idle | loading | done
+let aiStepIdx = 0;
+const AI_STEPS = [
+  'Ingesting family intake vectors...',
+  'Cross-referencing intelligence logs...',
+  'Calculating transit velocity models...',
+  'Generating prioritized search sectors...',
+  'Correlating movement patterns...',
+  'Drafting public broadcast notices...',
+  'Auto-filling case documents...'
+];
+
+function startAI(){
+  aiState='loading'; aiStepIdx=0;
+  renderTabContent();
+  const el = document.getElementById('ai-step-text');
+  if(el) el.textContent = AI_STEPS[0];
+  const iv = setInterval(()=>{
+    aiStepIdx++;
+    if(aiStepIdx >= AI_STEPS.length){
+      clearInterval(iv);
+      aiState='done';
+      renderTabContent();
+      showToast('✓ Bob AI Correlation Complete');
+    } else {
+      const t=document.getElementById('ai-step-text');
+      if(t) t.textContent=AI_STEPS[aiStepIdx];
+    }
+  },900);
+}
+
+function renderAITab(){
+  const i = caseData.intake;
+  const latest = [...caseData.logs].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+  const highConf = caseData.logs.filter(l=>l.confidence==='High').length;
+  const elapsed = (() => {
+    const d = Date.now()-new Date(i.timeMissing).getTime();
+    return `${Math.floor(d/3600000)}h ${Math.floor((d%3600000)/60000)}m`;
+  })();
+
+  if(aiState==='idle') return `
+    <div class="max-w-2xl mx-auto h-full flex flex-col items-center justify-center py-16">
+      <div class="bg-slate-900 rounded-2xl border border-slate-700 p-12 text-center w-full">
+        <svg class="w-16 h-16 text-emerald-400 mx-auto mb-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="12" r="10"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <h2 class="text-3xl font-bold text-white mb-3">Bob Intelligence Engine</h2>
+        <p class="text-slate-400 text-sm mb-2">Ready to correlate ${caseData.logs.length} intelligence log(s) against the intake file.</p>
+        <p class="text-slate-500 text-xs mb-8">Generates prioritized leads, recommended next actions, movement trajectory analysis, and a public broadcast notice.</p>
+        <button onclick="startAI()"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-10 rounded-lg shadow-lg flex items-center gap-2 mx-auto transition-all text-sm">
+          Run Bob Correlation
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>`;
+
+  if(aiState==='loading') return `
+    <div class="max-w-2xl mx-auto h-full flex flex-col items-center justify-center py-20 text-center">
+      <svg class="w-14 h-14 text-emerald-400 spin mx-auto mb-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      <h2 class="text-xl font-bold text-slate-800 mb-3">Synthesizing Case Data...</h2>
+      <p id="ai-step-text" class="text-slate-500 text-sm font-mono h-6">${AI_STEPS[aiStepIdx]}</p>
+      <div class="mt-8 w-48 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+        <div class="bg-emerald-500 h-full rounded-full transition-all duration-700" style="width:${Math.round((aiStepIdx/AI_STEPS.length)*100)}%"></div>
+      </div>
+    </div>`;
+
+  // ── DONE state ───────────────────────────────────────────────────────────────
+  const leads = [
+    { priority:'CRITICAL', label:'Expand CCTV perimeter 2 km east', detail:`Latest confirmed sighting at ${latest?.location||'unknown'} indicates eastward movement. Request feed access from AMTS bus stop cameras and SG Highway junction CCTV (Node #SG-14).`, action:'Dispatch CCTV operator team immediately.' },
+    { priority:'HIGH', label:'Intercept AMTS Bus Route 81/83', detail:`Subject was observed near an eastbound AMTS bus stop. Contact AMTS control room to review bus-mounted cameras for the 2-hour window post sighting. Alert bus conductors on Route 81 & 83.`, action:'Contact AMTS Control Room: 079-26576111.' },
+    { priority:'HIGH', label:'Unknown female companion — priority trace', detail:`Phone tip (Medium confidence) reports a middle-aged woman who led ${i.name} away on foot. Review vendor area CCTV. Circulate description to field units.`, action:'Deploy 2 plain-clothes officers to the ice cream stall area.' },
+    { priority:'MEDIUM', label:'Alert Childline 1098 & Railway Police', detail:`If subject boarded public transport, Railway GRP and Childline should be on standby at key bus termini and Ahmedabad Railway Station.`, action:'Issue lookout notice to GRP Ahmedabad & Gandhinagar.' },
+    { priority:'MEDIUM', label:'Social media geo-scan', detail:`Search Twitter/X and local Facebook groups for posts mentioning child sightings in the Vastrapur–SG Highway corridor within the last 18 hours.`, action:'Assign one officer to social media monitoring dashboard.' },
+    { priority:'LOW', label:`Alert ${i.schoolName||'subject\'s school'}`, detail:`Inform school authorities so classmates and parents can share information voluntarily. Check if any school events were scheduled today.`, action:'Dispatch written notice to school principal.' }
+  ];
+
+  const priorityStyle = {
+    CRITICAL:'bg-red-100 text-red-800 border-red-300',
+    HIGH:'bg-amber-100 text-amber-800 border-amber-200',
+    MEDIUM:'bg-blue-100 text-blue-800 border-blue-200',
+    LOW:'bg-slate-100 text-slate-700 border-slate-200'
+  };
+
+  return `<div class="max-w-3xl mx-auto space-y-8">
+    <!-- Re-run bar -->
+    <div class="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-3">
+      <div class="flex items-center gap-3">
+        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span class="text-sm font-semibold text-emerald-800">Analysis complete — ${caseData.logs.length} logs correlated</span>
+      </div>
+      <button onclick="aiState='idle';renderTabContent()" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 underline">Re-run</button>
+    </div>
+
+    <!-- Situational snapshot -->
+    <div class="grid grid-cols-3 gap-4">
+      <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+        <p class="text-[10px] font-bold text-red-700 uppercase tracking-wider mb-1">Time Elapsed</p>
+        <p class="text-2xl font-black text-red-700">${elapsed}</p>
+      </div>
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+        <p class="text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-1">Intel Entries</p>
+        <p class="text-2xl font-black text-blue-700">${caseData.logs.length}</p>
+      </div>
+      <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+        <p class="text-[10px] font-bold text-green-700 uppercase tracking-wider mb-1">High-Conf Sightings</p>
+        <p class="text-2xl font-black text-green-700">${highConf}</p>
+      </div>
+    </div>
+
+    <!-- Trajectory summary -->
+    <div class="bg-slate-900 rounded-xl border border-slate-700 p-5">
+      <h3 class="text-white font-bold text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
+        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Movement Trajectory Analysis
+      </h3>
+      <p class="text-slate-300 text-sm leading-relaxed">
+        Subject <strong class="text-white">${e(i.name)}</strong> was last officially seen at
+        <strong class="text-blue-300">${e(i.lastKnownLocation)}</strong> (${fmtDate(i.timeMissing)}).
+        ${caseData.logs.length} intelligence log(s) trace a ${caseData.logs.length>1?'consistent eastward':'single-point'} movement vector
+        toward <strong class="text-blue-300">${latest?.location||'unknown location'}</strong> (${fmtDate(latest?.timestamp)}).
+        At average child walking speed (~3 km/h), subject could now be within a 3–5 km radius east of the last known point.
+        Probability of public-transport boarding: <strong class="text-amber-300">High</strong> given proximity to AMTS stop.
+      </p>
+    </div>
+
+    <!-- Prioritized Leads -->
+    <div>
+      <h3 class="font-bold text-sm text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Prioritized Investigative Leads
+      </h3>
+      <div class="space-y-3">
+        ${leads.map((lead,n)=>`
+        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-start gap-3">
+            <span class="text-slate-400 font-black text-lg leading-none w-5 shrink-0">${n+1}</span>
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-center gap-2 mb-2">
+                <span class="font-bold text-sm text-slate-900">${lead.label}</span>
+                <span class="text-[10px] font-bold border px-2 py-0.5 rounded-full ${priorityStyle[lead.priority]}">${lead.priority}</span>
+              </div>
+              <p class="text-sm text-slate-600 leading-relaxed mb-2">${lead.detail}</p>
+              <div class="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+                <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                <span class="text-xs font-semibold text-blue-700">${lead.action}</span>
+              </div>
+            </div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Public Appeal Draft -->
+    <div class="bg-slate-900 rounded-xl border border-slate-700 p-6">
+      <h3 class="text-white font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Auto-drafted Public Appeal Notice
+        <span class="ml-auto text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded uppercase">Ready to broadcast</span>
+      </h3>
+      <div class="bg-slate-950 rounded-xl border border-slate-800 p-5">
+        <p class="text-slate-200 text-sm leading-loose font-serif">
+          🔴 <strong>URGENT — MISSING CHILD ALERT</strong><br/><br/>
+          <strong>${e(i.name)}</strong>, ${e(i.age)}-year-old ${e(i.gender).toLowerCase()}, has been missing since
+          <strong>${fmtDate(i.timeMissing)}</strong> from <strong>${e(i.lastKnownLocation)}</strong>, Ahmedabad.<br/><br/>
+          <strong>Description:</strong> ${e(i.clothing)}${i.distinguishingMarks?'. '+e(i.distinguishingMarks):''}.<br/><br/>
+          <strong>Last confirmed sighting:</strong> ${latest?`${e(latest.location)} at ${fmtDate(latest.timestamp)}`:'Under investigation'}.<br/><br/>
+          If you have seen this child or have any information, please contact the family at
+          <strong>${e(i.contactInfo)}</strong> or call Police Control Room <strong>100</strong> immediately.<br/><br/>
+          Case Reference: <strong>${caseData.caseId}</strong> — Ahmedabad Crime Branch.
+        </p>
+      </div>
+      <button onclick="copyAppeal()" class="mt-4 flex items-center gap-2 text-sm font-semibold text-purple-300 hover:text-purple-200 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy to clipboard
+      </button>
+    </div>
+  </div>`;
+}
+
+function copyAppeal(){
+  const i = caseData.intake;
+  const latest = [...caseData.logs].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+  const text = `URGENT — MISSING CHILD ALERT\n\n${i.name}, ${i.age}-year-old ${i.gender}, missing since ${fmtDate(i.timeMissing)} from ${i.lastKnownLocation}.\n\nDescription: ${i.clothing}${i.distinguishingMarks?'. '+i.distinguishingMarks:''}.\n\nLast confirmed sighting: ${latest?`${latest.location} at ${fmtDate(latest.timestamp)}`:'Under investigation'}.\n\nContact: ${i.contactInfo} or call 100. Case Ref: ${caseData.caseId}`;
+  navigator.clipboard.writeText(text).then(()=>showToast('✓ Appeal copied to clipboard'));
+}
+
+// ─── STEP 7 : Documents tab (FIR + Poster) ───────────────────────────────────
+function renderDocumentsTab(){
+  const i = caseData.intake;
+  const latest = [...caseData.logs].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))[0];
+  const all = [...caseData.logs].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+
+  const firHtml = `
+  <div class="p-10 font-serif text-black bg-white min-h-[900px]" id="fir-content">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <p class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-1">Government of Gujarat — Police Department</p>
+      <h1 class="text-3xl font-black uppercase tracking-widest border-b-4 border-black pb-4 inline-block">First Information Report</h1>
+      <p class="text-xs text-slate-500 mt-2">Under Section 154 Cr.P.C. / BNS Section 173</p>
+    </div>
+
+    <!-- Meta -->
+    <div class="grid grid-cols-3 gap-4 mb-6 text-sm">
+      <div class="border border-slate-300 rounded p-3">
+        <p class="text-[10px] font-bold uppercase text-slate-400 mb-0.5">Case Reference No.</p>
+        <p class="font-bold">${caseData.caseId}</p>
+      </div>
+      <div class="border border-slate-300 rounded p-3">
+        <p class="text-[10px] font-bold uppercase text-slate-400 mb-0.5">Date of Report</p>
+        <p class="font-bold">${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})}</p>
+      </div>
+      <div class="border border-slate-300 rounded p-3">
+        <p class="text-[10px] font-bold uppercase text-slate-400 mb-0.5">Police Station</p>
+        <p class="font-bold">Vastrapur, Ahmedabad City</p>
+      </div>
+    </div>
+
+    <!-- Subject details table -->
+    <table class="w-full border-collapse text-sm mb-6">
+      <tbody>
+        ${[
+          ['Missing Person (Subject)', i.name],
+          ['Age / Gender', `${i.age} Years / ${i.gender}`],
+          ['Height', `${i.height||'Not specified'} cm`],
+          ['Physical Description / Clothing', i.clothing],
+          ['Distinguishing Marks', i.distinguishingMarks||'None reported'],
+          ['School / Institution', i.schoolName||'Not provided'],
+          ['Last Known Location', i.lastKnownLocation],
+          ['Date & Time Last Seen', fmtDate(i.timeMissing)],
+          ['Reported By (Complainant)', i.reporterName],
+          ['Complainant Contact', i.contactInfo],
+        ].map(([k,v])=>`
+        <tr class="border-b border-slate-200">
+          <td class="py-2.5 pr-4 font-bold text-slate-700 w-1/3 align-top">${k}:</td>
+          <td class="py-2.5 text-slate-900 align-top">${e(v)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+
+    <!-- Intelligence logs -->
+    <div class="mb-6">
+      <h2 class="text-base font-black uppercase tracking-wider border-b-2 border-black pb-1 mb-3">Section B — Intelligence & Sighting Logs</h2>
+      <table class="w-full border-collapse text-xs">
+        <thead><tr class="bg-slate-100">
+          <th class="border border-slate-300 p-2 text-left font-bold">#</th>
+          <th class="border border-slate-300 p-2 text-left font-bold">Source</th>
+          <th class="border border-slate-300 p-2 text-left font-bold">Timestamp</th>
+          <th class="border border-slate-300 p-2 text-left font-bold">Location</th>
+          <th class="border border-slate-300 p-2 text-left font-bold">Description</th>
+          <th class="border border-slate-300 p-2 text-left font-bold">Conf.</th>
+        </tr></thead>
+        <tbody>
+          ${all.map((log,n)=>`
+          <tr class="border-b border-slate-200">
+            <td class="border border-slate-200 p-2 font-bold">${n+1}</td>
+            <td class="border border-slate-200 p-2">${e(log.source)}</td>
+            <td class="border border-slate-200 p-2 whitespace-nowrap">${fmtDate(log.timestamp)}</td>
+            <td class="border border-slate-200 p-2">${e(log.location)}</td>
+            <td class="border border-slate-200 p-2 leading-snug">${e(log.description)}</td>
+            <td class="border border-slate-200 p-2 font-bold">${e(log.confidence||'—')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Signature block -->
+    <div class="grid grid-cols-2 gap-12 mt-12 text-sm">
+      <div class="border-t-2 border-black pt-3">
+        <p class="font-bold">Complainant Signature</p>
+        <p class="text-slate-500 mt-1">${e(i.reporterName)}</p>
+        <p class="text-slate-400 text-xs">${e(i.contactInfo)}</p>
+      </div>
+      <div class="border-t-2 border-black pt-3">
+        <p class="font-bold">Investigating Officer</p>
+        <p class="text-slate-500 mt-1">IO — Ahmedabad Crime Branch</p>
+        <p class="text-slate-400 text-xs">Date: ${new Date().toLocaleDateString('en-IN')}</p>
+      </div>
+    </div>
+  </div>`;
+
+  const posterHtml = `
+  <div class="p-6 text-center bg-white min-h-[900px] flex flex-col" id="poster-content">
+    <div class="border-[14px] border-red-600 p-8 flex-1 flex flex-col justify-between">
+      <div>
+        <div class="bg-red-600 text-white py-3 px-6 inline-block text-xs font-black uppercase tracking-[.3em] mb-4">Police — Child Alert</div>
+        <h1 class="text-7xl font-black text-red-600 uppercase mb-6 leading-none">Missing<br/>Child</h1>
+        <div class="w-36 h-36 mx-auto bg-slate-100 rounded-full border-4 border-slate-300 flex items-center justify-center mb-6">
+          <svg class="w-20 h-20 text-slate-400" fill="none" stroke="currentColor" stroke-width="0.8" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <h2 class="text-5xl font-black mb-2">${e(i.name)}</h2>
+        <p class="text-xl font-bold text-slate-600 mb-4">Age: ${e(i.age)} &nbsp;|&nbsp; ${e(i.gender)}</p>
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-left inline-block mb-4 w-full max-w-md">
+          <p class="text-sm font-bold uppercase text-slate-500 mb-1">Physical Description</p>
+          <p class="text-sm text-slate-800">${e(i.clothing)}</p>
+          ${i.distinguishingMarks?`<p class="text-xs text-slate-600 mt-1">${e(i.distinguishingMarks)}</p>`:''}
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left inline-block w-full max-w-md">
+          <p class="text-xs font-bold uppercase text-amber-700 mb-1">Last Seen</p>
+          <p class="font-bold text-slate-900">${e(i.lastKnownLocation)}</p>
+          <p class="text-sm text-slate-700">${fmtDate(i.timeMissing)}</p>
+          ${latest?`<p class="text-xs text-slate-600 mt-1">Latest sighting: ${e(latest.location)}</p>`:''}
+        </div>
+      </div>
+      <div class="bg-black text-white p-6 mt-8 rounded-xl">
+        <h3 class="text-2xl font-black uppercase mb-2">If you have seen this child, call immediately</h3>
+        <p class="text-5xl font-black text-yellow-400">100</p>
+        <p class="text-xl font-bold mt-2">or &nbsp; ${e(i.contactInfo)}</p>
+        <p class="text-xs text-slate-400 mt-3">Case Ref: ${caseData.caseId} — Ahmedabad Police</p>
+      </div>
+    </div>
+  </div>`;
+
+  return `
+  <div class="max-w-3xl mx-auto flex flex-col h-full">
+    <!-- Controls -->
+    <div id="doccontrols" class="flex justify-between items-center mb-4 p-4 bg-white border border-slate-200 rounded-xl print:hidden">
+      <div class="flex gap-2">
+        <button onclick="activeDoc='fir';renderTabContent()"
+          class="px-5 py-2.5 text-sm font-bold rounded-md border transition-all ${activeDoc==='fir'?'bg-slate-100 border-slate-300 text-black':'border-transparent text-slate-500 hover:bg-slate-50'}">
+          FIR View
+        </button>
+        <button onclick="activeDoc='poster';renderTabContent()"
+          class="px-5 py-2.5 text-sm font-bold rounded-md transition-all ${activeDoc==='poster'?'bg-red-600 text-white border-red-600':'text-slate-500 hover:bg-red-50 border border-transparent'}">
+          Poster View
+        </button>
+      </div>
+      <button id="printbtn" onclick="printDoc()"
+        class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-bold transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print / Save PDF
+      </button>
+    </div>
+    <!-- Document area -->
+    <div class="flex-1 bg-white border border-slate-300 rounded-sm overflow-y-auto custom-scroll print:border-none print:overflow-visible">
+      ${activeDoc==='fir' ? firHtml : posterHtml}
+    </div>
+  </div>`;
+}
+
+function printDoc(){
+  const el = document.getElementById(activeDoc==='fir'?'fir-content':'poster-content');
+  if(!el) return;
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${activeDoc==='fir'?'FIR':'Missing Person Poster'}</title>
+  <style>body{font-family:serif;margin:32px;color:#000}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px 8px;font-size:12px}h1{font-size:24px}h2{font-size:18px}</style>
+  </head><body>${el.outerHTML}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>{ win.print(); win.close(); },400);
+}
+
+// ─── STEP 8 : Master renderTabContent (wires everything together) ─────────────
+function renderTabContent(){
+  const tc = document.getElementById('tabcontent');
+  if(activeTab==='overview'){
+    tc.innerHTML = renderOverviewTab();
+  } else if(activeTab==='map'){
+    tc.innerHTML = renderMapTab();
+    setTimeout(()=>{ initMap(); setTimeout(injectMapLegend,500); },50);
+  } else if(activeTab==='ai'){
+    tc.innerHTML = renderAITab();
+  } else if(activeTab==='documents'){
+    tc.innerHTML = renderDocumentsTab();
+  }
+}
+
+renderAll();
+</script>
+</body>
+</html>
