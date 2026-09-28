@@ -68,4 +68,4 @@ artifacts:
   demo_video: "demo/demo-video-link.txt"
   live_demo: "demo/live-demo-url.txt"
   screenshots: "demo/screenshots/"
-  presentation: "presentation/BOB.SYS_Investigation_Assistant.pptx"
+  presentation: "presentation/slides.pptx"
