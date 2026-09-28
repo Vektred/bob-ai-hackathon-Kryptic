@@ -7,13 +7,13 @@
 | **Team Name** | KRYPTIC                                                 |
 | **Track**     | AI                                                      |
 | **Team Lead** | Rahul — [r9785856@gmail.com](mailto:r9785856@gmail.com) |
-| **Members**   | Dhyan Murali MC, Shaurya Pansara, Aditya Kumar           |
+| **Members**   | Dhyan Murali M C, Shaurya Pansara, Aditya Kumar           |
 
 ---
 
 ## 🎯 Problem Statement
 
-> In 2–3 sentences: What problem does your project solve? Who experiences this problem?
+> What problem does your project solve? Who experiences this problem?
 
 Missing-person investigations often involve fragmented information such as reports, photographs, sightings, locations, evidence and investigation leads. Investigators may have to manually organize and compare this information, making it difficult to identify relevant connections and efficiently track case progress.
 
@@ -21,7 +21,7 @@ Missing-person investigations often involve fragmented information such as repor
 
 ## 💡 Solution
 
-> In 2–3 sentences: What did you build? How does it solve the problem above?
+> What did you build? How does it solve the problem above?
 
 KRYPTIC is an AI-assisted Missing Person Investigation Assistant that brings cases, person information, sightings, evidence, locations and leads together in one platform. It helps investigators organize investigations, identify potential connections and receive alerts while keeping final decisions under human control.
 
@@ -34,6 +34,7 @@ KRYPTIC is an AI-assisted Missing Person Investigation Assistant that brings cas
 * **Feature 3:** AI-assisted analysis that surfaces potential matches and investigation leads for human review.
 * **Feature 4:** Investigation timeline, map visualization, case intelligence and recommended next actions.
 * **Feature 5:** Role-based access, investigator alerts and audit logging for secure case management.
+* **Feature 6:** The family enters the child's details once, and the tool reuses them to auto-fill both the police case file and the public appeal notice.
 
 ---
 
@@ -41,32 +42,13 @@ KRYPTIC is an AI-assisted Missing Person Investigation Assistant that brings cas
 
 | Category             | Technologies                                                                     |
 | -------------------- | -------------------------------------------------------------------------------- |
-| **Languages**        | TypeScript                                                                       |
-| **Frameworks**       | React, Vite, Node.js, Express                                                    |
+| **Languages**        |                                                                     |
+| **Frameworks**       |                                                     |
 | **IBM Technologies** | IBM Bob, IBM watsonx / IBM AI                                                    |
-| **Databases**        | PostgreSQL, Prisma                                                               |
-| **Other**            | REST APIs, Authentication, Role-Based Access, Map Integration, Responsive Web UI |
+| **Databases**        |                                                           |
+| **Other**            |  |
 
 ---
-
-## 📁 Repository Structure
-
-```text
-├── src/                  # All source code
-├── docs/                 # Written documentation
-│   ├── problem-statement.md
-│   ├── solution-overview.md
-│   ├── architecture.md
-│   └── setup-guide.md
-├── demo/                 # Demo artifacts
-│   ├── screenshots/      # App screenshots
-│   └── demo-video-link.txt  # Link to demo video
-├── presentation/         # Slide deck
-└── submission.yaml       # Structured submission metadata
-```
-
----
-
 ## ⚡ How to Run
 
 > **Copy these exact steps from your [`docs/setup-guide.md`](docs/setup-guide.md)**
@@ -89,7 +71,7 @@ cp .env.example .env
 
 ---
 
-## 🖥️ Demo
+## Demo:
 
 | Artifact        | Link                                                     |
 | --------------- | -------------------------------------------------------- |
@@ -100,9 +82,7 @@ cp .env.example .env
 
 ---
 
-## ⚠️ Known Limitations
-
-> Be honest — judges appreciate transparency over overclaiming.
+## Known Limitations:
 
 * AI-assisted results are potential leads and require human investigator review.
 * Demonstration cases, people, sightings and evidence use fictional data.
@@ -111,6 +91,6 @@ cp .env.example .env
 
 ---
 
-## 🏅 What We're Most Proud Of
+## What We're Most Proud Of
 
 KRYPTIC connects missing-person reports, sightings, evidence, locations and investigation leads into one structured workflow. The platform combines case management, contextual case intelligence, timelines, maps, alerts and AI-assisted potential leads while keeping investigators responsible for final decisions.
