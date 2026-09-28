@@ -1,4 +1,4 @@
-# 🚀 [Your Project Title Here]
+# 🚀 KRYPTIC
 
 > ⚠️ **Replace everything in `[ ]` brackets with your actual content before submission.**
 
@@ -6,12 +6,12 @@
 
 ## 👥 Team
 
-| Field | Value |
-|---|---|
-| **Team Name** | [Your Team Name] |
-| **Track** | [AI / DevOps / Sustainability / Open] |
-| **Team Lead** | [Name] — [email@ibm.com] |
-| **Members** | [Name 1], [Name 2], [Name 3] |
+| Field         | Value                                                   |
+| ------------- | ------------------------------------------------------- |
+| **Team Name** | KRYPTIC                                                 |
+| **Track**     | AI                                                      |
+| **Team Lead** | Rahul — [r9785856@gmail.com](mailto:r9785856@gmail.com) |
+| **Members**   | Dhyam Murli MC, Shaurya Pansara, Aditya Kumar           |
 
 ---
 
@@ -19,7 +19,7 @@
 
 > In 2–3 sentences: What problem does your project solve? Who experiences this problem?
 
-[Describe the real-world problem your project addresses. Be specific about who the user is and what pain point they face.]
+Missing-person investigations often involve fragmented information such as reports, photographs, sightings, locations, evidence and investigation leads. Investigators may have to manually organize and compare this information, making it difficult to identify relevant connections and efficiently track case progress.
 
 ---
 
@@ -27,35 +27,35 @@
 
 > In 2–3 sentences: What did you build? How does it solve the problem above?
 
-[Describe your solution clearly. Explain the core mechanism — what makes it work.]
+KRYPTIC is an AI-assisted Missing Person Investigation Assistant that brings cases, person information, sightings, evidence, locations and leads together in one platform. It helps investigators organize investigations, identify potential connections and receive alerts while keeping final decisions under human control.
 
 ---
 
 ## ✨ Key Features
 
-- **Feature 1:** [Brief description — e.g., "Real-time anomaly detection using watsonx.ai"]
-- **Feature 2:** [Brief description]
-- **Feature 3:** [Brief description]
-- **Feature 4:** [Optional]
-- **Feature 5:** [Optional]
+* **Feature 1:** Centralized missing-person case management with person profiles, case status and investigation details.
+* **Feature 2:** Sighting, tip and evidence management with locations, descriptions and supporting information.
+* **Feature 3:** AI-assisted analysis that surfaces potential matches and investigation leads for human review.
+* **Feature 4:** Investigation timeline, map visualization, case intelligence and recommended next actions.
+* **Feature 5:** Role-based access, investigator alerts and audit logging for secure case management.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Category | Technologies |
-|---|---|
-| **Languages** | [e.g., Python, TypeScript] |
-| **Frameworks** | [e.g., FastAPI, React] |
-| **IBM Technologies** | [e.g., watsonx.ai, IBM Bob, IBM Cloud] |
-| **Databases** | [e.g., PostgreSQL, Redis] |
-| **Other** | [e.g., Docker, GitHub Actions] |
+| Category             | Technologies                                                                     |
+| -------------------- | -------------------------------------------------------------------------------- |
+| **Languages**        | TypeScript                                                                       |
+| **Frameworks**       | React, Vite, Node.js, Express                                                    |
+| **IBM Technologies** | IBM Bob, IBM watsonx / IBM AI                                                    |
+| **Databases**        | PostgreSQL, Prisma                                                               |
+| **Other**            | REST APIs, Authentication, Role-Based Access, Map Integration, Responsive Web UI |
 
 ---
 
 ## 📁 Repository Structure
 
-```
+```text
 ├── src/                  # All source code
 ├── docs/                 # Written documentation
 │   ├── problem-statement.md
@@ -95,12 +95,12 @@ cp .env.example .env
 
 ## 🖥️ Demo
 
-| Artifact | Link |
-|---|---|
-| 📹 Demo Video | [See demo/demo-video-link.txt](demo/demo-video-link.txt) |
-| 🌐 Live Demo | [See demo/live-demo-url.txt](demo/live-demo-url.txt) |
-| 🖼️ Screenshots | [See demo/screenshots/](demo/screenshots/) |
-| 📊 Presentation | [See presentation/slides.pdf](presentation/) |
+| Artifact        | Link                                                     |
+| --------------- | -------------------------------------------------------- |
+| 📹 Demo Video   | [See demo/demo-video-link.txt](demo/demo-video-link.txt) |
+| 🌐 Live Demo    | [See demo/live-demo-url.txt](demo/live-demo-url.txt)     |
+| 🖼️ Screenshots | [See demo/screenshots/](demo/screenshots/)               |
+| 📊 Presentation | [See presentation/slides.pdf](presentation/)             |
 
 ---
 
@@ -108,14 +108,13 @@ cp .env.example .env
 
 > Be honest — judges appreciate transparency over overclaiming.
 
-- [Limitation 1: e.g., "Authentication is mocked — not production-ready"]
-- [Limitation 2: e.g., "Only tested on Chrome"]
-- [Limitation 3: e.g., "Feature X is scaffolded but not fully implemented"]
+* AI-assisted results are potential leads and require human investigator review.
+* Demonstration cases, people, sightings and evidence use fictional data.
+* IBM AI/watsonx integration may require appropriate configuration and credentials.
+* The prototype may require additional security, privacy, legal and infrastructure controls for production deployment.
 
 ---
 
 ## 🏅 What We're Most Proud Of
 
-[Tell the judges what part of your submission is strongest and worth paying close attention to.]
-
----
+KRYPTIC connects missing-person reports, sightings, evidence, locations and investigation leads into one structured workflow. The platform combines case management, contextual case intelligence, timelines, maps, alerts and AI-assisted potential leads while keeping investigators responsible for final decisions.
