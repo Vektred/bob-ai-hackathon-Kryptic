@@ -7,7 +7,9 @@
 | **Team Name** | KRYPTIC                                                 |
 | **Track**     | AI                                                      |
 | **Team Lead** | Rahul — [r9785856@gmail.com](mailto:r9785856@gmail.com) |
-| **Members**   | Dhyan Murali M C, Shaurya Pansara, Aditya Kumar           |
+| **Member**   | Dhyan Murali M C -[vektred@gmail.com]                   |
+| **Member**   | Shaurya Pansara  -[pansara.shaurya2009@gmail.com]       |
+| **Member**   | Aditya Kumar     -[aditya.224.kr@gmail.com]             |
 
 ---
 
